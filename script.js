@@ -22,19 +22,19 @@ const levelConfig = {
     size: 3,
     time: 240,
     asset:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/120px-React-icon.svg.png",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/WJrCzoja5Knp/monad-1jNW27jKDl6XxiH2kng82xyuRNQBaB.jpg",
   },
   2: {
     size: 4,
     time: 420,
     asset:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Visual_Studio_Code_1.35_icon.svg/120px-Visual_Studio_Code_1.35_icon.svg.png",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/WJrCzoja5Knp/patapak-u9ITGAqeSSqLycXRd4nOxrGcBbNIQ2.png",
   },
   3: {
     size: 5,
     time: 600,
     asset:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/React.svg/120px-React.svg.png",
+      "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/WJrCzoja5Knp/indonads-Ug2AoCDCH32I9SRGg65Z6bX02pWCkP.jpg",
   },
 };
 
@@ -65,7 +65,7 @@ function startGame(resetTimer = true) {
       if (timeLeft <= 0) {
         clearInterval(countdown);
 
-        // Partial progress scoring
+        // partial progress scoring
         let correct = 0;
         for (let i = 0; i < tiles.length - 1; i++) {
           if (tiles[i] === i + 1) correct++;
@@ -82,7 +82,7 @@ function startGame(resetTimer = true) {
         updateScoreDisplay();
 
         message.textContent = `⏱️ Waktu habis! Skor: ${partialScore + correctPiecesBonus} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})`;
-        window.FarcadeSDK?.singlePlayer.actions.gameOver({ score: totalScore });
+        window.FarcadeSDK.singlePlayer.actions.gameOver({ score: totalScore });
       }
     }, 1000);
   }
@@ -139,4 +139,16 @@ function moveTile(index) {
 
   const tileRow = Math.floor(index / size);
   const tileCol = index % size;
-  const emptyRow = Math
+  const emptyRow = Math.floor(emptyIndex / size);
+  const emptyCol = emptyIndex % size;
+
+  const rowDiff = Math.abs(tileRow - emptyRow);
+  const colDiff = Math.abs(tileCol - emptyCol);
+
+  if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+    const correctBefore = checkCorrectPieces();
+
+    [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
+    render();
+
+    const correctAfter = checkCorrectPieces

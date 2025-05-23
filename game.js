@@ -81,13 +81,14 @@ function startGame(resetTimer = true) {
         totalScore = Object.values(levelScores).reduce((a, b) => a + b, 0);
         updateScoreDisplay();
 
-        message.textContent = `⏱️ Waktu habis! Skor: ${partialScore + correctPiecesBonus} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})`;
+        message.textContent = `⏱️ Waktu habis! Skor: ${
+          partialScore + correctPiecesBonus
+        } (Base: ${partialScore} + Bonus: ${correctPiecesBonus})`;
         window.FarcadeSDK.singlePlayer.actions.gameOver({ score: totalScore });
       }
     }, 1000);
   }
 
-  timerStarted = false;
   timerStarted = true;
   tiles = Array.from({ length: size * size }, (_, i) => i);
   shuffleArray(tiles);
@@ -115,7 +116,9 @@ function render() {
       const x = (tile - 1) % size;
       const y = Math.floor((tile - 1) / size);
       div.style.backgroundSize = `${size * 100}% ${size * 100}%`;
-      div.style.backgroundPosition = `${(x * 100) / (size - 1)}% ${(y * 100) / (size - 1)}%`;
+      div.style.backgroundPosition = `${(x * 100) / (size - 1)}% ${
+        (y * 100) / (size - 1)
+      }%`;
     }
     div.addEventListener("click", () => moveTile(i));
     board.appendChild(div);
@@ -123,7 +126,7 @@ function render() {
 }
 
 function checkCorrectPieces() {
-  if (!timerStarted) return;
+  if (!timerStarted) return 0;
 
   let correctPieces = 0;
   for (let i = 0; i < tiles.length - 1; i++) {
@@ -146,9 +149,88 @@ function moveTile(index) {
   const colDiff = Math.abs(tileCol - emptyCol);
 
   if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+    // Check correct pieces before move
     const correctBefore = checkCorrectPieces();
 
     [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
     render();
 
-    const correctAfter = checkCorrectPieces
+    // Check correct pieces after move
+    const correctAfter = checkCorrectPieces();
+
+    // If more pieces are correct after the move, award bonus points
+    if (correctAfter > correctBefore) {
+      const bonus = 125 * (correctAfter - correctBefore);
+      levelScores[currentLevel] += bonus;
+      totalScore = Object.values(levelScores).reduce((a, b) => a + b, 0);
+      updateScoreDisplay();
+      message.textContent = `+${bonus} points for correct placement!`;
+      setTimeout(() => {
+        message.textContent = "";
+      }, 1000);
+    }
+
+    checkWin();
+    window.FarcadeSDK?.singlePlayer?.actions?.hapticFeedback?.();
+  }
+}
+
+function getScoreVariant(timeLeftValue) {
+  const total = levelConfig[currentLevel].time;
+  const timeRatio = timeLeftValue / total;
+  if (timeRatio >= 0.9) return 300;
+  if (timeRatio >= 0.75) return 250;
+  if (timeRatio >= 0.5) return 200;
+  if (timeRatio >= 0.25) return 150;
+  if (timeRatio >= 0.1) return 100;
+  return 50;
+}
+
+function checkWin() {
+  for (let i = 0; i < tiles.length - 1; i++) {
+    if (tiles[i] !== i + 1) return;
+  }
+  if (tiles[tiles.length - 1] !== 0) return;
+  clearInterval(countdown);
+  const baseScore = getScoreVariant(timeLeft);
+  const completionBonus = 50;
+  const score = baseScore + completionBonus;
+  levelScores[currentLevel] = score;
+  totalScore = Object.values(levelScores).reduce((a, b) => a + b, 0);
+  message.textContent = `🎉 Puzzle Selesai! Skor: ${score} (Base: ${baseScore} + Bonus: ${completionBonus})`;
+  updateScoreDisplay();
+  window.FarcadeSDK?.singlePlayer?.actions?.gameOver?.({ score: totalScore });
+}
+
+function shuffleArray(arr) {
+  do {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  } while (!isSolvable(arr));
+}
+
+function isSolvable(array) {
+  let inv = 0;
+  for (let i = 0; i < array.length; i++) {
+    for (let j = i + 1; j < array.length; j++) {
+      if (array[i] && array[j] && array[i] > array[j]) inv++;
+    }
+  }
+  return inv % 2 === 0;
+}
+
+shuffleBtn.addEventListener("click", () => {
+  startGame(false);
+});
+
+window.FarcadeSDK?.on?.("play_again", () => {
+  startGame();
+});
+
+window.FarcadeSDK?.on?.("toggle_mute", (data) => {
+  console.log("Mute state:", data.isMuted);
+});
+
+startGame();

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monad Puzzle</title>
+  <script src="https://cdn.jsdelivr.net/npm/@farcade/game-sdk@latest/dist/index.min.js"></script>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <h1>Monad Puzzle</h1>
+  <div id="reference">
+    <img src="/assets/monad.jpg" alt="Referensi" />
+  </div>
+  <select id="levelSelect">
+    <option value="1">Level 1 (Easy)</option>
+    <option value="2">Level 2 (Medium)</option>
+    <option value="3">Level 3 (Expert)</option>
+  </select>
+  <div id="timer">Waktu: 04:00</div>
+  <div id="board"></div>
+  <button id="shuffleBtn">Shuffle</button>
+  <div id="message"></div>
+  <div id="scoreBoard">
+    <div id="levelScore">Current Level Score: 0</div>
+    <div id="totalScore">Total Score: 0</div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

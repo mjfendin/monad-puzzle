@@ -21,17 +21,20 @@ const levelConfig = {
   1: {
     size: 3,
     time: 240,
-    asset: "/assets/monad.jpg",
+    asset:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/120px-React-icon.svg.png",
   },
   2: {
     size: 4,
     time: 420,
-    asset: "/assets/patapak.png",
+    asset:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Visual_Studio_Code_1.35_icon.svg/120px-Visual_Studio_Code_1.35_icon.svg.png",
   },
   3: {
     size: 5,
     time: 600,
-    asset: "/assets/indonads.jpg",
+    asset:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/React.svg/120px-React.svg.png",
   },
 };
 
@@ -79,7 +82,7 @@ function startGame(resetTimer = true) {
         updateScoreDisplay();
 
         message.textContent = `⏱️ Waktu habis! Skor: ${partialScore + correctPiecesBonus} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})`;
-        window.FarcadeSDK.singlePlayer.actions.gameOver({ score: totalScore });
+        window.FarcadeSDK?.singlePlayer.actions.gameOver({ score: totalScore });
       }
     }, 1000);
   }
@@ -136,92 +139,4 @@ function moveTile(index) {
 
   const tileRow = Math.floor(index / size);
   const tileCol = index % size;
-  const emptyRow = Math.floor(emptyIndex / size);
-  const emptyCol = emptyIndex % size;
-
-  const rowDiff = Math.abs(tileRow - emptyRow);
-  const colDiff = Math.abs(tileCol - emptyCol);
-
-  if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-    const correctBefore = checkCorrectPieces();
-
-    [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
-    render();
-
-    const correctAfter = checkCorrectPieces();
-
-    if (correctAfter > correctBefore) {
-      const bonus = 125 * (correctAfter - correctBefore);
-      levelScores[currentLevel] += bonus;
-      totalScore = Object.values(levelScores).reduce((a, b) => a + b, 0);
-      updateScoreDisplay();
-      message.textContent = `+${bonus} points for correct placement!`;
-      setTimeout(() => {
-        message.textContent = "";
-      }, 1000);
-    }
-
-    checkWin();
-    window.FarcadeSDK?.singlePlayer?.actions?.hapticFeedback?.();
-  }
-}
-
-function getScoreVariant(timeLeftValue) {
-  const total = levelConfig[currentLevel].time;
-  const timeRatio = timeLeftValue / total;
-  if (timeRatio >= 0.9) return 300;
-  if (timeRatio >= 0.75) return 250;
-  if (timeRatio >= 0.5) return 200;
-  if (timeRatio >= 0.25) return 150;
-  if (timeRatio >= 0.1) return 100;
-  return 50;
-}
-
-function checkWin() {
-  for (let i = 0; i < tiles.length - 1; i++) {
-    if (tiles[i] !== i + 1) return;
-  }
-  if (tiles[tiles.length - 1] !== 0) return;
-  clearInterval(countdown);
-  const baseScore = getScoreVariant(timeLeft);
-  const completionBonus = 50;
-  const score = baseScore + completionBonus;
-  levelScores[currentLevel] = score;
-  totalScore = Object.values(levelScores).reduce((a, b) => a + b, 0);
-  message.textContent = `🎉 Puzzle Selesai! Skor: ${score} (Base: ${baseScore} + Bonus: ${completionBonus})`;
-  updateScoreDisplay();
-  window.FarcadeSDK?.singlePlayer?.actions?.gameOver?.({ score: totalScore });
-}
-
-function shuffleArray(arr) {
-  do {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  } while (!isSolvable(arr));
-}
-
-function isSolvable(array) {
-  let inv = 0;
-  for (let i = 0; i < array.length; i++) {
-    for (let j = i + 1; j < array.length; j++) {
-      if (array[i] && array[j] && array[i] > array[j]) inv++;
-    }
-  }
-  return inv % 2 === 0;
-}
-
-shuffleBtn.addEventListener("click", () => {
-  startGame(false);
-});
-
-window.FarcadeSDK?.on?.("play_again", () => {
-  startGame();
-});
-
-window.FarcadeSDK?.on?.("toggle_mute", (data) => {
-  console.log("Mute state:", data.isMuted);
-});
-
-startGame();
+  const emptyRow = Math

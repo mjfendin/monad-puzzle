@@ -1,43 +1,23 @@
 // app/page.tsx
-
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { sdk } from '@farcaster/frame-sdk'
 
 export default function Home() {
-  const [loading, setLoading] = useState(true)
-
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const postFrame = params.get('post_frame')
-
-    if (postFrame) {
-      // Simulate loading process before showing the game
-      const timeout = setTimeout(async () => {
-        setLoading(false)
-
-        // Notify Farcaster that the app is ready and disable gestures
-        await sdk.actions.ready({ disableNativeGestures: true })
-      }, 1000)
-
-      return () => clearTimeout(timeout)
-    } else {
-      setLoading(false)
+    const init = async () => {
+      await sdk.actions.ready({ disableNativeGestures: true })
     }
+    init()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-lg font-medium">Loading game...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex items-center justify-center h-screen">
-      <p className="text-xl font-bold">🎮 Monad Puzzle Game Loaded!</p>
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+      <h1 className="text-4xl font-bold mb-4">Monad Puzzle</h1>
+      <p className="text-lg text-center">
+        Welcome to the Farcaster Mini App for Monad Puzzle!
+      </p>
+    </main>
   )
 }

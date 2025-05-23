@@ -1,0 +1,41 @@
+{
+  "name": "Monad Puzzle",
+  "description": "Sliding puzzle game with Monad logo and level system, integrated Farcaster SDK.",
+  "version": "1.0.0",
+  "author": "MJF Endin",
+  "main": "index.html",
+  "icon": "icon.png",
+  "type": "game",
+  "orientation": "portrait",
+  "sdkVersion": "latest",
+  "permissions": [
+    "singlePlayer",
+    "hapticFeedback",
+    "sound",
+    "storage"
+  ],
+  "actions": {
+    "gameOver": {
+      "description": "Trigger when game ends with final score."
+    },
+    "playAgain": {
+      "description": "Restart the game."
+    },
+    "toggleMute": {
+      "description": "Toggle mute/unmute."
+    }
+  },
+  "events": [
+    "play_again",
+    "toggle_mute"
+  ],
+  "sizes": {
+    "minWidth": 320,
+    "minHeight": 480,
+    "maxWidth": 1080,
+    "maxHeight": 1920
+  },
+  "dependencies": {
+    "@farcade/game-sdk": "latest"
+  }
+}

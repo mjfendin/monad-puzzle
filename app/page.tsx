@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card"
 import Script from "next/script"
 
-// Level configuration matching the original script
+// Level configuration
 const LEVEL_CONFIG = {
   1: {
     size: 3,
@@ -49,13 +49,13 @@ declare global {
 export default function MonadPuzzle() {
   const [tiles, setTiles] = useState<number[]>([])
   const [currentLevel, setCurrentLevel] = useState(1)
-  const [timeLeft, setTimeLeft] = useState(240)
+  const [timeLeft, setTimeLeft] = useState(LEVEL_CONFIG[1].time)
   const [timerStarted, setTimerStarted] = useState(false)
   const [message, setMessage] = useState("")
   const [levelScores, setLevelScores] = useState({ 1: 0, 2: 0, 3: 0 })
   const [totalScore, setTotalScore] = useState(0)
   const [sdkLoaded, setSdkLoaded] = useState(false)
-  const countdownRef = useRef<NodeJS.Timeout>()
+  const countdownRef = useRef<NodeJS.Timeout | null>(null)
 
   const config = LEVEL_CONFIG[currentLevel as keyof typeof LEVEL_CONFIG]
 
@@ -97,7 +97,7 @@ export default function MonadPuzzle() {
     return inv % 2 === 0
   }
 
-  // Get score based on time left
+  // Get score variant based on remaining time
   const getScoreVariant = (timeLeftValue: number) => {
     const total = config.time
     const timeRatio = timeLeftValue / total
@@ -109,45 +109,44 @@ export default function MonadPuzzle() {
     return 50
   }
 
-  // Check correct pieces
+  // Count correct placed tiles
   const checkCorrectPieces = (currentTiles: number[]) => {
     if (!timerStarted) return 0
-
     let correctPieces = 0
     for (let i = 0; i < currentTiles.length - 1; i++) {
       if (currentTiles[i] === i + 1) correctPieces++
     }
     if (currentTiles[currentTiles.length - 1] === 0) correctPieces++
-
     return correctPieces
   }
 
-  // Update score display
+  // Update total score
   const updateScoreDisplay = useCallback(() => {
     const newTotalScore = Object.values(levelScores).reduce((a, b) => a + b, 0)
     setTotalScore(newTotalScore)
   }, [levelScores])
 
-  // Start game
+  // Start or restart game
   const startGame = useCallback(
     (resetTimer = true) => {
       setMessage("")
 
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current)
+        countdownRef.current = null
+      }
+
       if (resetTimer) {
         setTimeLeft(config.time)
-        if (countdownRef.current) {
-          clearInterval(countdownRef.current)
-        }
-
         countdownRef.current = setInterval(() => {
           setTimeLeft((prev) => {
             const newTime = prev - 1
             if (newTime <= 0) {
               if (countdownRef.current) {
                 clearInterval(countdownRef.current)
+                countdownRef.current = null
               }
-
-              // Partial progress scoring when time runs out
+              // Time's up - calculate partial score
               setTiles((currentTiles) => {
                 let correct = 0
                 for (let i = 0; i < currentTiles.length - 1; i++) {
@@ -159,16 +158,15 @@ export default function MonadPuzzle() {
                 const maxScore = getScoreVariant(1)
                 const partialScore = Math.floor(maxScore * percentComplete)
                 const correctPiecesBonus = correct * 125
-
                 const finalScore = partialScore + correctPiecesBonus
+
                 setLevelScores((prev) => ({ ...prev, [currentLevel]: finalScore }))
-                
-                // Special message for level 3 timeout
+
                 if (currentLevel === 3) {
                   setMessage(`⏱️ Time's up on Expert Level! 
-                  Score: ${finalScore} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})
-                  
-                  🎯 So close to completing all levels! Try again!`)
+Score: ${finalScore} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})
+
+🎯 So close to completing all levels! Try again!`)
                 } else {
                   setMessage(`⏱️ Waktu habis! Skor: ${finalScore} (Base: ${partialScore} + Bonus: ${correctPiecesBonus})`)
                 }
@@ -183,7 +181,7 @@ export default function MonadPuzzle() {
 
                 return currentTiles
               })
-
+              setTimerStarted(false)
               return 0
             }
             return newTime
@@ -193,7 +191,7 @@ export default function MonadPuzzle() {
 
       setTimerStarted(true)
 
-      // Create and shuffle tiles
+      // Generate initial tiles and shuffle
       const initialTiles = Array.from({ length: config.size * config.size }, (_, i) => i)
       const shuffledTiles = shuffleArray(initialTiles)
       setTiles(shuffledTiles)
@@ -202,10 +200,10 @@ export default function MonadPuzzle() {
         window.FarcadeSDK.singlePlayer.actions.ready()
       }
     },
-    [config, currentLevel, sdkLoaded],
+    [config, currentLevel, sdkLoaded, levelScores],
   )
 
-  // Move tile
+  // Move tile logic
   const moveTile = (index: number) => {
     if (!timerStarted) return
 
@@ -224,9 +222,7 @@ export default function MonadPuzzle() {
       const correctBefore = checkCorrectPieces(tiles)
 
       const newTiles = [...tiles]
-      const temp = newTiles[index]
-      newTiles[index] = newTiles[emptyIndex]
-      newTiles[emptyIndex] = temp
+      ;[newTiles[index], newTiles[emptyIndex]] = [newTiles[emptyIndex], newTiles[index]]
 
       setTiles(newTiles)
 
@@ -236,7 +232,7 @@ export default function MonadPuzzle() {
         const bonus = 125 * (correctAfter - correctBefore)
         setLevelScores((prev) => ({
           ...prev,
-          [currentLevel]: prev[currentLevel as keyof typeof prev] + bonus,
+          [currentLevel]: (prev[currentLevel as keyof typeof prev] || 0) + bonus,
         }))
         setMessage(`+${bonus} points for correct placement!`)
         setTimeout(() => setMessage(""), 1000)
@@ -255,178 +251,152 @@ export default function MonadPuzzle() {
       if (isWin) {
         if (countdownRef.current) {
           clearInterval(countdownRef.current)
+          countdownRef.current = null
         }
+
         const baseScore = getScoreVariant(timeLeft)
         const completionBonus = 50
         const finalScore = baseScore + completionBonus
+
         setLevelScores((prev) => ({ ...prev, [currentLevel]: finalScore }))
-        
-        // Check if this is level 3 (Expert) completion - GAME COMPLETE
+
         if (currentLevel === 3) {
           const finalTotalScore = Object.values({ ...levelScores, [currentLevel]: finalScore }).reduce((a, b) => a + b, 0)
-          const gameCompleteBonus = 500 // Extra bonus for completing all levels
-          const grandTotalScore = finalTotalScore + gameCompleteBonus
-          
-          setMessage(`🏆 GAME COMPLETE! 🏆
-          Level 3 Score: ${finalScore}
-          Total Score: ${finalTotalScore}
-          Game Complete Bonus: +${gameCompleteBonus}
-          FINAL SCORE: ${grandTotalScore}
-          
-          🎉 Congratulations! You've mastered all levels! 🎉`)
-          
-          // Update total score with game complete bonus
-          setTotalScore(grandTotalScore)
-          
+          setTotalScore(finalTotalScore)
+          setMessage(
+            `🎉 Congratulations! You've completed all levels!
+
+Final Score: ${finalTotalScore}
+
+Please share your score to the leaderboard!`,
+          )
           if (sdkLoaded && window.FarcadeSDK) {
-            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: grandTotalScore })
+            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: finalTotalScore })
           }
+          setTimerStarted(false)
         } else {
-          setMessage(`🎉 Puzzle Selesai! Skor: ${finalScore} (Base: ${baseScore} + Bonus: ${completionBonus})`)
-          
-          if (sdkLoaded && window.FarcadeSDK) {
-            const newTotal = Object.values({ ...levelScores, [currentLevel]: finalScore }).reduce((a, b) => a + b, 0)
-            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: newTotal })
-          }
+          setMessage(
+            `🎉 Level ${currentLevel} complete! Your score: ${finalScore}
+
+Proceed to the next level.`,
+          )
+          setCurrentLevel((prev) => prev + 1)
+          setTimerStarted(false)
         }
       }
-
-      if (sdkLoaded && window.FarcadeSDK) {
-        window.FarcadeSDK.singlePlayer.actions.hapticFeedback()
-      }
     }
   }
 
-  // Format time
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  }
-
-  // Get tile background position
-  const getTileStyle = (tile: number, index: number) => {
-    const actualTile = tile === 0 ? tiles.length : tile
-    const x = (actualTile - 1) % config.size
-    const y = Math.floor((actualTile - 1) / config.size)
-
-    return {
-      backgroundImage: `url(${config.asset})`,
-      backgroundSize: `${config.size * 100}% ${config.size * 100}%`,
-      backgroundPosition: `${(x * 100) / (config.size - 1)}% ${(y * 100) / (config.size - 1)}%`,
-      backgroundRepeat: "no-repeat",
-    }
-  }
-
-  // Level change handler
-  const handleLevelChange = (value: string) => {
-    setCurrentLevel(Number(value))
-  }
-
-  // Effects
+  // Update total score when levelScores change
   useEffect(() => {
     updateScoreDisplay()
   }, [levelScores, updateScoreDisplay])
 
+  // Initialize Farcade SDK on mount
+  useEffect(() => {
+    initializeFarcadeSDK()
+    startGame()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Update timeLeft when level changes
   useEffect(() => {
     startGame()
-  }, [currentLevel, startGame])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLevel])
 
-  useEffect(() => {
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current)
-      }
+  // Get tile background style to show image slice
+  const getTileStyle = (tile: number, index: number) => {
+    if (tile === 0) return {}
+
+    const size = config.size
+    const x = ((tile - 1) % size) * (100 / (size - 1))
+    const y = Math.floor((tile - 1) / size) * (100 / (size - 1))
+
+    return {
+      backgroundImage: `url(${config.asset})`,
+      backgroundSize: `${size * 100}% ${size * 100}%`,
+      backgroundPosition: `${x}% ${y}%`,
+      cursor: "pointer",
+      userSelect: "none",
     }
-  }, [])
+  }
 
   return (
     <>
       <Script
-        src="https://cdn.jsdelivr.net/npm/@farcade/game-sdk@latest/dist/index.min.js"
-        onLoad={initializeFarcadeSDK}
+        src="https://cdn.jsdelivr.net/npm/farcade-sdk@latest/farcade-sdk.min.js"
+        onLoad={() => initializeFarcadeSDK()}
       />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-700 to-gray-900 p-4">
+        <h1 className="text-3xl font-bold text-white mb-6">Monad Puzzle - {config.name}</h1>
 
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-start p-4">
-        <div className="w-full max-w-md mx-auto space-y-4">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold mt-5 mb-2">Monad Puzzle</h1>
-
-            <div className="mb-2">
-              <img
-                src={config.asset || "/placeholder.svg"}
-                alt="Reference"
-                className="w-25 h-25 mx-auto rounded-lg border-2 border-white"
-                style={{ width: "100px", height: "100px" }}
-              />
-            </div>
-
-            <Select value={currentLevel.toString()} onValueChange={handleLevelChange}>
-              <SelectTrigger className="w-full bg-gray-800 border-gray-700 mb-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                {Object.entries(LEVEL_CONFIG).map(([level, config]) => (
-                  <SelectItem key={level} value={level} className="text-white">
-                    {config.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="text-lg mb-2">Waktu: {formatTime(timeLeft)}</div>
-          </div>
-
-          <Card className="p-1 bg-black border-gray-700">
-            <div
-              className="grid gap-1 aspect-square w-full max-w-sm mx-auto"
-              style={{
-                gridTemplateColumns: `repeat(${config.size}, 1fr)`,
-                width: "90vmin",
-                height: "90vmin",
-                maxWidth: "400px",
-                maxHeight: "400px",
-              }}
-            >
-              {tiles.map((tile, index) => (
-                <button
-                  key={index}
-                  onClick={() => moveTile(index)}
-                  className={`
-                    aspect-square rounded border-2 transition-transform duration-200 active:scale-95
-                    ${tile === 0 ? "border-white border-dashed" : "border-white"}
-                  `}
-                  style={getTileStyle(tile, index)}
-                />
+        <div className="mb-4 w-64">
+          <Select
+            value={currentLevel.toString()}
+            onValueChange={(value) => setCurrentLevel(parseInt(value))}
+            disabled={timerStarted}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Level" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(LEVEL_CONFIG).map(([level, levelCfg]) => (
+                <SelectItem key={level} value={level}>
+                  {levelCfg.name}
+                </SelectItem>
               ))}
-            </div>
-          </Card>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="space-y-4">
-            <Button onClick={() => startGame(false)} className="w-full bg-gray-600 hover:bg-gray-700 text-white">
-              Shuffle
-            </Button>
+        <div className="mb-4 text-white font-mono text-xl select-none">Time Left: {timeLeft}s</div>
+
+        <Card className="bg-gray-800 p-4 rounded-lg shadow-lg max-w-md w-full">
+          <div
+            className="grid gap-1"
+            style={{
+              gridTemplateColumns: `repeat(${config.size}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${config.size}, minmax(0, 1fr))`,
+              aspectRatio: "1 / 1",
+              userSelect: "none",
+            }}
+          >
+            {tiles.map((tile, index) => (
+              <button
+                key={index}
+                className={`aspect-square w-full flex items-center justify-center rounded-md border transition-all duration-300
+                  ${
+                    tile === 0
+                      ? "bg-gray-900 border-gray-700 cursor-default"
+                      : "bg-white text-black border-gray-300 hover:scale-105 active:scale-95"
+                  }`}
+                style={tile !== 0 ? getTileStyle(tile, index) : {}}
+                onClick={() => moveTile(index)}
+                disabled={tile === 0 || !timerStarted}
+                aria-label={tile !== 0 ? `Tile ${tile}` : "Empty space"}
+              >
+                {/* Uncomment if you want to show number:
+                  tile !== 0 ? tile : ""
+                */}
+              </button>
+            ))}
           </div>
+        </Card>
 
-          {/* Message */}
-          {message && (
-            <div className={`text-center text-lg font-bold ${
-              message.includes('GAME COMPLETE') 
-                ? 'text-yellow-400 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent text-xl' 
-                : 'text-green-400'
-            }`}>
-              <div className={`${
-                message.includes('GAME COMPLETE') 
-                  ? 'border-2 border-yellow-400 rounded-lg p-4 bg-yellow-900/20' 
-                  : ''
-              }`}>
-                {message.split('\n').map((line, index) => (
-                  <div key={index} className={line.includes('🏆') ? 'text-2xl mb-2' : ''}>
-                    {line}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="text-center mt-6 space-y-2 text-white font-semibold select-none max-w-md">
+          <div>Total Score: {totalScore}</div>
+          <div className="whitespace-pre-line">{message}</div>
 
-          <div className="text-center space-y-2 text-gray-300">
+          <Button
+            className="mt-3 bg-blue-600 hover:bg-blue-700 w-full"
+            onClick={() => startGame(true)}
+            disabled={timerStarted}
+          >
+            Shuffle / Restart Level
+          </Button>
+        </div>
+      </div>
+    </>
+  )
+}

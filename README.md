@@ -23,7 +23,7 @@ A sliding tile puzzle game featuring the Monad logo, built as a Farcaster Mini A
 
 1. **Clone the repository:**
 \`\`\`bash
-git clone https://github.com/yourusername/monad-puzzle-farcaster.git
+git clone https://github.com/mjfendin/monad-puzzle-farcaster.git
 cd monad-puzzle-farcaster
 \`\`\`
 
@@ -38,7 +38,7 @@ cp .env.example .env.local
 \`\`\`
 Edit `.env.local` and set your deployment URL:
 \`\`\`env
-NEXT_PUBLIC_BASE_URL=https://your-app.vercel.app
+NEXT_PUBLIC_BASE_URL=https://monad-puzzle.vercel.app/
 \`\`\`
 
 4. **Run development server:**
@@ -202,7 +202,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/monad-puzzle-farcaster/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/monad-puzzle-farcaster/discussions)
-- **Farcaster**: [@yourusername](https://warpcast.com/yourusername)
+- **Farcaster**: [@yourusername](https://warpcast.com/mjfendin)
 
 ## 🙏 Acknowledgments
 
